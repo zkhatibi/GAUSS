@@ -48,20 +48,20 @@ def pad_smile(string, max_str_len):
     if len(string) <= max_str_len:
             return string + " " * (max_str_len - len(string))
     else:
-         print(' check the entry for the smiles. The smile length is larger than the allowed length cap')
+         print('Check the SMILES. The SMILES length is larger than the length cap')
 
 def smiles_to_hot(smiles, seq_len, unique_chars, char_to_idx):
     no_of_examples = len(smiles)
     smiles = [pad_smile(i, seq_len) for i in smiles if pad_smile(i, seq_len)]
 
     X = np.zeros((no_of_examples, seq_len, unique_chars), dtype=np.float32) 
-    # nr of smiles in the dataset, length og the largest string in the dataset, nr of chars in the dictionary 
+    # nr of smiles in the dataset, length of the largest string in the dataset, nr of chars in the dictionary 
     for smile_idx, smile in enumerate(smiles):
         for char_idx, char in enumerate(smile):
             try:
                 X[smile_idx, char_idx, char_to_idx[char]] = 1
             except KeyError as e:
-                print("ERROR: Check chars file. Invalid SMILES:", smile)
+                print("Invalid SMILES - unassigned character in the string - ", smile)
                 raise e
     return X
 

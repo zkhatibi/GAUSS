@@ -1,5 +1,5 @@
 import torch
-from VAEloss_annealling_sum import * 
+from VAEloss import * 
 from copy import deepcopy
     
 def training_loop_w_prop(model, optimizer, scheduler, epochs, spiltted_data, KLD_weight, annealling, model_name, out_dir):

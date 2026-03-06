@@ -3,7 +3,7 @@ from rdkit import Chem
 import torch.nn as nn
 import numpy as np
 
-def test_loop(model, spiltted_data, idx_to_char, model_checkpoint_path, out_dir):
+def test_VAE_recon(model, spiltted_data, idx_to_char, model_checkpoint_path, out_dir):
     '''
     Measures the model success in terms of how many of the decoded SMILES are identical to the original SMILES. 
     
@@ -41,14 +41,14 @@ def test_loop(model, spiltted_data, idx_to_char, model_checkpoint_path, out_dir)
 
     if valid_smiles:
         print('Some examples of the valid structures:')
-        [print(string) for string in valid_smiles[:50]]
+        [print(string) for string in valid_smiles[:20]]
     if correct_smiles:
         print('Some examples of the correct structures:')
-        [print(string) for string in correct_smiles[:50]]
+        [print(string) for string in correct_smiles[:20]]
     
     np.savetxt(out_dir+'stat.txt', [100*len(correct_smiles)/len(target), 100*len(valid_smiles)/len(target)])
 
-def gen_latentZ(model, spiltted_data, model_checkpoint_path, output_path):
+def test_VAE_properties(model, spiltted_data, model_checkpoint_path, output_path):
     '''
     Outputs the generated latent vectors of the full set for post analysis and visulization using PCA. 
     

@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 
 # VAE model:
-class VAE_GRU_2L_nochunk_v3_w_DNN(nn.Module):
+class VAE_XYZ(nn.Module):
     def __init__(self, input_dim, latent_dim, seq_len):
         '''
         The main architecture of the VAE model. It includes an encoder, a decoder and a property predicter.
