@@ -4,37 +4,6 @@ import torch.nn as nn
 import numpy as np
 
 
-def make_canon(string):
-    if Chem.CanonSmiles(string) is not None:
-        return Chem.CanonSmiles(string)
-    
-
-def get_string(latentz_point, model, idx_to_char):
-    z_norm = model.normalize_latent(latentz_point)
-    prediction = model.regressor(z_norm)
-    recon = model.decode(latentz_point.unsqueeze(0))
-    recon = nn.Softmax(dim=2)(recon)
-    recon = torch.argmax(recon, dim=2)
-    new_smile = ''.join([idx_to_char[idx.item()] for idx in recon[0]]).replace(' ','')
-    return new_smile, prediction, z_norm
-
-def get_string_fast(latentz_point, model, idx_to_char):
-    recon = model.decode(latentz_point.unsqueeze(0))
-    recon = nn.Softmax(dim=2)(recon)
-    recon = torch.argmax(recon, dim=2)
-    new_smile = ''.join([idx_to_char[idx.item()] for idx in recon[0]]).replace(' ','')
-    return new_smile
-
-def lp_sampling_fast(no_of_samples, seed, variance, canon_smiles, idx_to_char, model):
-    gen_smiles = []
-    for _ in range(no_of_samples):
-        z_perturbed = local_perturbation(seed, scale=variance)
-        new_smile = get_string_fast(z_perturbed, model, idx_to_char)
-        gen_smiles.append(new_smile)
-    valid = [string for string in gen_smiles if Chem.MolFromSmiles(string) and string !='']
-    novel = [string for string in valid if make_canon(string) not in canon_smiles]
-    return valid, novel
-
 def local_perturbation(seed, scale):
     """
     Applies Local Perturbation (LP) to a given latent space point.
@@ -53,46 +22,53 @@ def local_perturbation(seed, scale):
     
     return z_new
 
+def make_canon(string):
+    if Chem.CanonSmiles(string) is not None:
+        return Chem.CanonSmiles(string)
+    
+def get_string_prop(latentz_point, model, idx_to_char):
+    z_norm = model.normalize_latent(latentz_point)
+    prediction = model.regressor(z_norm)
+    new_smile = get_string(latentz_point, model, idx_to_char)
+    return new_smile, prediction, z_norm
 
-def lp_sampling(no_of_samples, sample, variance, smiles, idx_to_char, model):
+def get_string(latentz_point, model, idx_to_char):
+    recon = model.decode(latentz_point.unsqueeze(0))
+    recon = nn.Softmax(dim=2)(recon)
+    recon = torch.argmax(recon, dim=2)
+    new_smile = ''.join([idx_to_char[idx.item()] for idx in recon[0]]).replace(' ','')
+    return new_smile
 
-    gen_smiles = [] # generated smiles 
-
+def lp_sampling(no_of_samples, seed, variance, canon_smiles, idx_to_char, model):
+    gen_smiles = []
     for _ in range(no_of_samples):
-        z_perturbed = local_perturbation(sample, scale=variance)
-        recon = model.decode(z_perturbed.unsqueeze(0))
-        recon = nn.Softmax(dim=2)(recon)
-        recon = torch.argmax(recon, dim=2)
-        new_smile = ''.join([idx_to_char[idx.item()] for idx in recon[0]]).replace(' ','')
-        if new_smile not in gen_smiles:
-            gen_smiles.append(new_smile)
-
-    valid_smiles = [string for string in gen_smiles if Chem.MolFromSmiles(string)]
-    novel_smiles = [string for string in valid_smiles if string not in smiles]
-    return valid_smiles, novel_smiles
-
+        z_perturbed = local_perturbation(seed, scale=variance)
+        new_smile = get_string(z_perturbed, model, idx_to_char)
+        gen_smiles.append(new_smile)
+    valid = [string for string in gen_smiles if Chem.MolFromSmiles(string) and string !='']
+    novel = [string for string in valid if make_canon(string) not in canon_smiles]
+    return valid, novel
 
 def lp_sampling_w_prop(no_of_samples, seed, variance, canon_smiles, idx_to_char, model):
 
     gen_smiles = [] # generated smiles 
-    # repeat_dict = {}
+    repeat_dict = {}
     
     for _ in range(no_of_samples):
         z_perturbed = local_perturbation(seed, scale=variance)
         new_smile, prediction, _ = get_string(z_perturbed, model, idx_to_char)
-        # if new_smile in repeat_dict:
-        #     repeat_dict.update({new_smile:repeat_dict[new_smile]+1})
-        # else:
-        #     repeat_dict.update({new_smile:1})
+        if new_smile in repeat_dict:
+            repeat_dict.update({new_smile:repeat_dict[new_smile]+1})
+        else:
+            repeat_dict.update({new_smile:1})
         gen_smiles.append([new_smile, prediction])
-    # seed_string, _, _= get_string(seed, model, idx_to_char)
-    # print(f'The seed string is: {seed_string}')
-    # print(f'The strings repeated as follows: {repeat_dict}')
+    seed_string, _, _= get_string(seed, model, idx_to_char)
+    print(f'The seed string is: {seed_string}')
+    print(f'The strings repeated as follows: {repeat_dict}')
     gen_dict = {smile:value for smile, value in gen_smiles}
     valid = [[string,value] for string, value in gen_smiles if Chem.MolFromSmiles(string) and string !='']
     novel = [[string,value] for string, value in valid if make_canon(string) not in canon_smiles]
-    # novel_smiles = [make_canon(string) for string in valid.keys() if make_canon(string) not in canon_smiles]
-    return gen_dict, valid, novel#, novel_smiles
+    return gen_dict, valid, novel
 
 
 def slerp_sampling(seed1, seed2, steps_len, idx_to_char, smiles, model):
