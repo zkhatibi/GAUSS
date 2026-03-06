@@ -23,10 +23,10 @@ def reset_directory(dir_path):
 if __name__ == '__main__':
 
     train, annealling = True, False   
-    out_dir = './' # set the output directory 
-    dataset_path = './VAE_129k_DB.txt' # set the datset path 
+    out_dir = './results/' # set the output directory 
+    dataset_path = './data/VAE_129k_DB.txt' # set the datset path 
     VAE_model = 'VAE_XYZ' # set the VAE flavour 
-    model_checkpoint_path = f'./{VAE_model}_best_state.pt' # if test, set the model parameters path 
+    model_checkpoint_path = f'./data/{VAE_model}_best_state.pt' # if test, set the model parameters path 
     reset_directory(out_dir)
 
     smiles, char_to_idx, idx_to_char, nchars, max_len, prop, mask = define_dict_w_mask(dataset_path)
