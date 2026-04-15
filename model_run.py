@@ -25,7 +25,7 @@ if __name__ == '__main__':
     train, annealling = True, False   
     out_dir = './results/' # set the output directory 
     dataset_path = './data/VAE_129k_DB.txt' # set the datset path 
-    VAE_model = 'VAE_XYZ' # set the VAE flavour 
+    VAE_model = 'VAE_XYZ' # set the GAUSS flavour, 'VAE_LOPROP' or 'VAE_XYZ'
     model_checkpoint_path = f'./data/{VAE_model}_best_state.pt' # if test, set the model parameters path 
     reset_directory(out_dir)
 
@@ -35,13 +35,13 @@ if __name__ == '__main__':
 
     # set the hyperparameters
     num_data, seq_len, input_dim = torch.tensor(data).size()
-    epochs = 50
+    epochs = 1
     learning_rate = 1e-3
     latent_dim = 32 # latent space should be strictly 32 
     KLD_weight = 1e-2
 
     # Initialize model, optimizer, and data
-    model = VAE_XYZ(input_dim=input_dim, latent_dim=latent_dim, seq_len = seq_len)
+    model = GAUSS(input_dim=input_dim, latent_dim=latent_dim, seq_len = seq_len)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     # set a scheduler to monitor the loss and modify the learning rate automatically 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(

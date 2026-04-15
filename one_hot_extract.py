@@ -35,7 +35,8 @@ def define_dict_w_mask(input_path):
     nchars = len(chars) # number of unique chars 
     max_len = max(length) # max string length 
     char_to_idx = {ch:i  for i, ch in enumerate(chars)}    
-    idx_to_char = {i:ch  for i, ch in enumerate(chars)}   
+    idx_to_char = {i:ch  for i, ch in enumerate(chars)}  
+    print('SMILES and target values are extracted... ') 
     return smiles, char_to_idx, idx_to_char, nchars, max_len, prop_normalized, mask
 
 def pad_smile(string, max_str_len):

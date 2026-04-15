@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 
 # VAE model:
-class VAE_XYZ(nn.Module):
+class GAUSS(nn.Module):
     def __init__(self, input_dim, latent_dim, seq_len):
         '''
         The main architecture of the VAE model. It includes an encoder, a decoder and a property predicter.
@@ -33,26 +33,11 @@ class VAE_XYZ(nn.Module):
         self.decoder_dense = nn.Linear(2*input_dim, input_dim)
         self.decoder_dropout = nn.Dropout(p=0.2)
 
-        # Regressor -- xyz
-        self.regressor_linear1 = nn.Linear(latent_dim+6, latent_dim)
-        self.regressor_act1 = nn.LeakyReLU()
-        self.regressor_dropout = nn.Dropout(p=0.005)
-        self.regressor_linear2 = nn.Linear(latent_dim, 8)
-        self.regressor_act2 = nn.SiLU()
-        self.regressor_linear3 = nn.Linear(8, 7)
+        self.regressor_XYZ = RegressorXYZ(latent_dim)
+        self.regressor_LOPROP = RegressorLOPROP(latent_dim)
 
     def normalize_latent(self, z):
         return (z-self.mean)/(1e-14 + self.sigma)
-
-    def regressor(self, z):
-        out = self.regressor_linear1(z)
-        out = self.regressor_act1(out)
-        out = self.regressor_dropout(out)
-        out = self.regressor_linear2(out)
-        out = self.regressor_act2(out)
-        out = self.regressor_dropout(out)
-        out = self.regressor_linear3(out)
-        return out
 
     def encode(self, x):
         out, _ = self.encoder_gru1(x) # returns the last slice of the hidden state with the dim of (1,batch_size,hidden_dim)
@@ -80,17 +65,48 @@ class VAE_XYZ(nn.Module):
         recon = self.decoder_dense(recon)
         return recon  
     
-    def forward(self, x, mask, xp):
+    def forward(self, x, mask, xp, mode):
         mu, logvar = self.encode(x)
         z = self.reparameterize(mu, logvar)
-        if z.size(-1) !=32:
-            print('we have a batch of one smile')
+        # if z.size(-1) !=32:
+        #     print('we have a batch of one smile')
         z = z.reshape([-1,self.latent_dim]) # this and next line takes care of possible batches of one ligand
-        xp = xp.reshape([-1, 6])
         recon = self.decode(z)
         z_norm = self.normalize_latent(z)
-        masked_xp = torch.zeros_like(xp)
-        masked_xp[mask] = xp[mask]
-        z_norm = torch.cat((z_norm, masked_xp), dim=1) # concats the xyz info at the end of latent vector
-        y = self.regressor(z_norm[mask])
+        if mode == 'VAE_XYZ':
+            xp = xp.reshape([-1, 6])
+            masked_xp = torch.zeros_like(xp)
+            masked_xp[mask] = xp[mask]
+            z_input = torch.cat((z_norm, masked_xp), dim=1) # concats the xyz info at the end of latent vector
+            y = self.regressor_XYZ(z_input[mask])
+        elif mode == 'VAE_LOPROP':
+            y = self.regressor_LOPROP(z_norm[mask])
         return recon, y, mu, logvar, z_norm, z
+    
+class RegressorXYZ(nn.Module):
+    def __init__(self, latent_dim):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(latent_dim + 6, latent_dim),
+            nn.LeakyReLU(),
+            nn.Dropout(0.005),
+            nn.Linear(latent_dim, 8),
+            nn.SiLU(),
+            nn.Linear(8, 7)
+        )
+
+    def forward(self, z):
+        return self.net(z)
+    
+class RegressorLOPROP(nn.Module):
+    def __init__(self, latent_dim):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(latent_dim, latent_dim),
+            nn.LeakyReLU(),
+            nn.Dropout(p=0.2),
+            nn.Linear(latent_dim, 4)
+        )
+
+    def forward(self, z):
+        return self.net(z)

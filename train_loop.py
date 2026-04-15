@@ -31,7 +31,7 @@ def training_loop_w_prop(model, optimizer, scheduler, epochs, spiltted_data, KLD
             batch_size, _, input_dim = x.size()
 
             # Forward pass
-            recon, y_pred, mu, logvar, _, _ = model(x, mask, y[:,:6])
+            recon, y_pred, mu, logvar, _, _ = model(x, mask, y[:,:6], model_name)
             recon = recon.reshape(-1, input_dim)  # Logits: (batch_size * seq_len, input_dim)
             target = torch.argmax(x, dim=2).reshape(-1)  # return the indices of chars in the string: (batch_size * seq_len)
             
@@ -70,7 +70,7 @@ def training_loop_w_prop(model, optimizer, scheduler, epochs, spiltted_data, KLD
             for batch_data in spiltted_data.test_loader:
                 x, y, mask = batch_data
                 batch_size, _, _ = x.size()
-                recon, y_pred, mu, logvar, _, _ = model(x, mask, y[:,:6])
+                recon, y_pred, mu, logvar, _, _ = model(x, mask, y[:,:6], model_name)
                 recon = recon.reshape(-1, input_dim)  # Logits: (batch_size * seq_len, input_dim)
                 target = torch.argmax(x, dim=2).reshape(-1)  # return the indices of chars in the string: (batch_size * seq_len)
                 loss = vae_dnn_loss(recon, target, y[mask, 6:], y_pred, mask, logvar, mu, KL_weight, dnn_weight=1)
