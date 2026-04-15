@@ -37,7 +37,7 @@ if __name__ == '__main__':
     num_data, seq_len, input_dim = torch.tensor(data).size()
     epochs = 50
     learning_rate = 1e-3
-    latent_dim = 32 # latent space should be restrictly 32 
+    latent_dim = 32 # latent space should be strictly 32 
     KLD_weight = 1e-2
 
     # Initialize model, optimizer, and data
@@ -46,8 +46,8 @@ if __name__ == '__main__':
     # set a scheduler to monitor the loss and modify the learning rate automatically 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, 
-        mode = 'min',        # Use 'min' for loss, 'max' for accuracy
-        factor = .5,        # Multiplier for LR. new_lr = lr * factor
+        mode = 'min',        # 'min' for loss
+        factor = .5,        # new_lr = lr * factor
         patience = 0
     )
 
@@ -55,9 +55,9 @@ if __name__ == '__main__':
         print('The calculation has started ...')
         training_loop_w_prop(model, optimizer, scheduler, epochs, spiltted_data, KLD_weight, annealling, VAE_model, out_dir)
     else:
-        print('Reading the model checkpoint file to retrive the model parameters...')
+        print('Reading the model checkpoint file to retrieve the model parameters...')
         print('The calculation has started ...')
-        test_VAE_recon(model, spiltted_data, idx_to_char, model_checkpoint_path, out_dir)
+        test_VAE_recon(model, spiltted_data, idx_to_char, model_checkpoint_path, out_dir) # test the performance 
         test_VAE_properties(model, spiltted_data, model_checkpoint_path, out_dir)
 
 

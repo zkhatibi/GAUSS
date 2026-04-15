@@ -73,7 +73,7 @@ def training_loop_w_prop(model, optimizer, scheduler, epochs, spiltted_data, KLD
                 recon, y_pred, mu, logvar, _, _ = model(x, mask, y[:,:6])
                 recon = recon.reshape(-1, input_dim)  # Logits: (batch_size * seq_len, input_dim)
                 target = torch.argmax(x, dim=2).reshape(-1)  # return the indices of chars in the string: (batch_size * seq_len)
-                loss = vae_dnn_loss(recon, target, y[mask, 6:], y_pred, mask, logvar, mu, KL_weight, dnn_weight)
+                loss = vae_dnn_loss(recon, target, y[mask, 6:], y_pred, mask, logvar, mu, KL_weight, dnn_weight=1)
                 val_loss += loss.detach().item() * batch_size
                 total_val_samples += batch_size 
                 avg_val_loss = val_loss / total_val_samples
