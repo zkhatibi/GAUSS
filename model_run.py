@@ -41,7 +41,7 @@ if __name__ == '__main__':
     KLD_weight = 1e-2
 
     # Initialize model, optimizer, and data
-    model = GAUSS(input_dim=input_dim, latent_dim=latent_dim, seq_len = seq_len)
+    model = GAUSS(input_dim=input_dim, latent_dim=latent_dim, seq_len = seq_len, mode=VAE_model)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     # set a scheduler to monitor the loss and modify the learning rate automatically 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(

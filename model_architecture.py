@@ -3,7 +3,7 @@ import torch
 
 # VAE model:
 class GAUSS(nn.Module):
-    def __init__(self, input_dim, latent_dim, seq_len):
+    def __init__(self, input_dim, latent_dim, seq_len, mode="VAE_XYZ"):
         '''
         The main architecture of the VAE model. It includes an encoder, a decoder and a property predicter.
         
@@ -12,6 +12,7 @@ class GAUSS(nn.Module):
         :param seq_len: The length of the largest SMILES in the dataset that is computed automatically.  
         '''
         super().__init__()
+        self.mode = mode
         self.seq_len = seq_len
         self.latent_dim = latent_dim
         hidden_dim = int((latent_dim*2+64)) 
@@ -32,6 +33,23 @@ class GAUSS(nn.Module):
         self.decoder_gru2 = nn.GRU(2*hidden_dim, input_dim, batch_first=True, bidirectional=True)
         self.decoder_dense = nn.Linear(2*input_dim, input_dim)
         self.decoder_dropout = nn.Dropout(p=0.2)
+
+        # if mode == "XYZ":
+        #     self.prepare_input = self._prepare_xyz
+        #     self.regressor = RegressorXYZ(latent_dim)
+
+        # elif mode == "LOPROP":
+        #     self.prepare_input = self._prepare_loprop
+        #     self.regressor = RegressorLOPROP(latent_dim)
+
+        if mode == "VAE_XYZ":
+            self.regressor = RegressorXYZ(latent_dim)
+            self.use_xyz = True
+        elif mode == "VAE_LOPROP":
+            self.regressor = RegressorLOPROP(latent_dim)
+            self.use_xyz = False
+        else:
+            raise ValueError("Unknown mode")
 
         self.regressor_XYZ = RegressorXYZ(latent_dim)
         self.regressor_LOPROP = RegressorLOPROP(latent_dim)
@@ -65,22 +83,40 @@ class GAUSS(nn.Module):
         recon = self.decoder_dense(recon)
         return recon  
     
-    def forward(self, x, mask, xp, mode):
+    # def _prepare_xyz(self, z_norm, mask, xp):
+    #     xp = xp.reshape([-1, 6])
+    #     masked_xp = torch.zeros_like(xp)
+    #     masked_xp[mask] = xp[mask]
+    #     z_input = torch.cat((z_norm, masked_xp), dim=1)
+    #     return z_input[mask]
+    
+    # def _prepare_loprop(self, z_norm, mask, xp=None):
+    #     return z_norm[mask]
+    
+    # def forward(self, x, mask, xp=None):
+    #     mu, logvar = self.encode(x)
+    #     z = self.reparameterize(mu, logvar)
+    #     z = z.reshape([-1, self.latent_dim])
+    #     recon = self.decode(z)
+    #     z_norm = self.normalize_latent(z)
+    #     z_input = self.prepare_input(z_norm, mask, xp)
+    #     y = self.regressor(z_input)
+    #     return recon, y, mu, logvar, z_norm, z
+    
+    def forward(self, x, mask, xp=None):
         mu, logvar = self.encode(x)
         z = self.reparameterize(mu, logvar)
-        # if z.size(-1) !=32:
-        #     print('we have a batch of one smile')
         z = z.reshape([-1,self.latent_dim]) # this and next line takes care of possible batches of one ligand
         recon = self.decode(z)
         z_norm = self.normalize_latent(z)
-        if mode == 'VAE_XYZ':
+        if self.use_xyz:
             xp = xp.reshape([-1, 6])
             masked_xp = torch.zeros_like(xp)
             masked_xp[mask] = xp[mask]
             z_input = torch.cat((z_norm, masked_xp), dim=1) # concats the xyz info at the end of latent vector
-            y = self.regressor_XYZ(z_input[mask])
-        elif mode == 'VAE_LOPROP':
-            y = self.regressor_LOPROP(z_norm[mask])
+        else:
+            z_input = z_norm
+        y = self.regressor(z_input[mask])
         return recon, y, mu, logvar, z_norm, z
     
 class RegressorXYZ(nn.Module):
